@@ -1,0 +1,90 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) Nginx, Inc.
+
+
+if [ $EVENT_SELECT = NO -a $EVENT_FOUND = NO ]; then
+    EVENT_SELECT=YES
+fi
+
+if [ $EVENT_SELECT = YES ]; then
+    have=NGX_HAVE_SELECT . auto/have
+    CORE_SRCS="$CORE_SRCS $SELECT_SRCS"
+    EVENT_MODULES="$EVENT_MODULES $SELECT_MODULE"
+fi
+
+
+if [ $EVENT_POLL = NO -a $EVENT_FOUND = NO ]; then
+    EVENT_POLL=YES
+fi
+
+if [ $EVENT_POLL = YES ]; then
+    have=NGX_HAVE_POLL . auto/have
+    CORE_SRCS="$CORE_SRCS $POLL_SRCS"
+    EVENT_MODULES="$EVENT_MODULES $POLL_MODULE"
+fi
+
+
+if [ $NGX_TEST_BUILD_DEVPOLL = YES ]; then
+    have=NGX_HAVE_DEVPOLL . auto/have
+    have=NGX_TEST_BUILD_DEVPOLL . auto/have
+    EVENT_MODULES="$EVENT_MODULES $DEVPOLL_MODULE"
+    CORE_SRCS="$CORE_SRCS $DEVPOLL_SRCS"
+fi
+
+
+if [ $NGX_TEST_BUILD_EVENTPORT = YES ]; then
+    have=NGX_HAVE_EVENTPORT . auto/have
+    have=NGX_TEST_BUILD_EVENTPORT . auto/have
+    EVENT_MODULES="$EVENT_MODULES $EVENTPORT_MODULE"
+    CORE_SRCS="$CORE_SRCS $EVENTPORT_SRCS"
+fi
+
+if [ $NGX_TEST_BUILD_EPOLL = YES ]; then
+    have=NGX_HAVE_EPOLL . auto/have
+    have=NGX_HAVE_EPOLLRDHUP . auto/have
+    have=NGX_HAVE_EVENTFD . auto/have
+    have=NGX_TEST_BUILD_EPOLL . auto/have
+    EVENT_MODULES="$EVENT_MODULES $EPOLL_MODULE"
+    CORE_SRCS="$CORE_SRCS $EPOLL_SRCS"
+fi
+
+if [ $NGX_TEST_BUILD_RTSIG = YES ]; then
+    have=NGX_HAVE_RTSIG . auto/have
+    have=NGX_TEST_BUILD_RTSIG . auto/have
+    EVENT_MODULES="$EVENT_MODULES $RTSIG_MODULE"
+    CORE_SRCS="$CORE_SRCS $RTSIG_SRCS"
+fi
+
+if [ $NGX_TEST_BUILD_SOLARIS_SENDFILEV = YES ]; then
+    have=NGX_TEST_BUILD_SOLARIS_SENDFILEV . auto/have
+    CORE_SRCS="$CORE_SRCS $SOLARIS_SENDFILEV_SRCS"
+fi
+
+cat << END                                    > $NGX_MODULES_C
+
+#include <ngx_config.h>
+#include <ngx_core.h>
+
+$NGX_PRAGMA
+
+END
+
+for mod in $modules
+do
+    echo "extern ngx_module_t  $mod;"         >> $NGX_MODULES_C
+done
+
+echo                                          >> $NGX_MODULES_C
+echo 'ngx_module_t *ngx_modules[] = {'        >> $NGX_MODULES_C
+
+for mod in $modules
+do
+    echo "    &$mod,"                         >> $NGX_MODULES_C
+done
+
+cat << END                                    >> $NGX_MODULES_C
+    NULL
+};
+
+END
